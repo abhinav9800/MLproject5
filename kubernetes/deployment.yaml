@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iris-predictor-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iris-fastapi-service
+  template:
+    metadata:
+      labels:
+        app: iris-fastapi-service
+    spec:
+      containers:
+      - name: iris-fastapi-service
+        image: "${IMAGE_NAME}"
+        ports:
+        - containerPort: 80
+        env:
+        - name: MODEL_FILE_NAME
+          value: "iris_model.pkl"
+        resources:
+          limits:
+            cpu: "0.5" # Maximum of 0.5 CPU cores
+            memory: "512Mi" # Maximum of 512 megabytes of memory
+          requests:
+            cpu: "0.1" # Minimum of 0.1 CPU cores
+            memory: "128Mi" # Minimum of 128 megabytes of memory
