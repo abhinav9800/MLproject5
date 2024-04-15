@@ -1,13 +1,12 @@
 pipeline {
   agent any
-
   environment {
     ECR_REPOSITORY = credentials('ECR_REPOSITORY')
     AWS_ACCOUNT_ID = credentials('AWS_ACCOUNT_ID')
     AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
   }
-
+  
   stages {
     stage('Continuous Integration') {
       steps {
@@ -23,6 +22,7 @@ pipeline {
         script {
           sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com'
         }
+
       }
     }
 
@@ -31,6 +31,7 @@ pipeline {
         script {
           sh 'docker build -t ${ECR_REPOSITORY}:latest .'
         }
+
       }
     }
 
@@ -39,17 +40,14 @@ pipeline {
         script {
           sh 'docker push ${ECR_REPOSITORY}:latest'
         }
+
       }
     }
 
-    stage('Deploy to Kubernetes') {
+    stage('Continuous Deployment') {
       steps {
-        container('kubernetes') {
-          // Assuming Kubernetes plugin is configured and credentials are available
-          sh """
-            kubectl apply -f deployment.yaml
-            kubectl apply -f service.yaml
-          """
+        sshagent(['ssh_key']) {
+          sh "ssh -o StrictHostKeyChecking=no -l ubuntu 54.80.194.59 'cd /home/ubuntu/ && wget https://raw.githubusercontent.com/entbappy/End-to-end-Object-Detection-Project/main/docker-compose.yml && export IMAGE_NAME=${ECR_REPOSITORY}:latest && aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com && docker compose up -d '"
         }
       }
     }
